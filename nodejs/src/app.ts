@@ -359,48 +359,65 @@ app.get("/api/isu", async (req, res) => {
     await db.beginTransaction()
 
     //TODO: N+1
-    const [isuList] = await db.query<Isu[]>(
-      "SELECT * FROM `isu` WHERE `jia_user_id` = ? ORDER BY `id` DESC",
+    const [isuConditions] = (await db.query(
+      "SELECT i.name AS i_name, i.id AS i_id, i.jia_isu_uuid AS i_j_isu_uuid, i.character AS i_character, i_c.timestamp AS i_timestamp, i_c.condition AS i_condition, i_c.is_sitting AS i_is_sitting, i_c.message AS i_message" +
+        " FROM `isu_condition` i_c JOIN `isu` i ON i_c.jia_isu_uuid = i.jia_isu_uuid" +
+        " WHERE i.jia_user_id = ? ORDER BY timestamp DESC",
       [jiaUserId]
-    )
+    )) as mysql.RowDataPacket[]
+
     const responseList: Array<GetIsuListResponse> = []
-    for (const isu of isuList) {
-      let foundLastCondition = true
-      const [[lastCondition]] = await db.query<IsuCondition[]>(
-        "SELECT * FROM `isu_condition` WHERE `jia_isu_uuid` = ? ORDER BY `timestamp` DESC LIMIT 1",
-        [isu.jia_isu_uuid]
-      )
-      if (!lastCondition) {
-        foundLastCondition = false
-      }
-      let formattedCondition = undefined
-      if (foundLastCondition) {
-        const [conditionLevel, err] = calculateConditionLevel(
-          lastCondition.condition
-        )
-        if (err) {
-          console.error(err)
-          await db.rollback()
-          return res.status(500).send()
+
+    // IsuIdだけの配列。
+    let isuIdList: number[] = []
+
+    const isuConditionsPromise = isuConditions.map(
+      async (isuCondition: any) => {
+        let foundLastCondition = true
+        const targetIsuId = isuCondition.i_id
+        if (isuIdList.indexOf(targetIsuId) === -1) {
+          isuIdList.push(targetIsuId)
+
+          if (!isuCondition) {
+            foundLastCondition = false
+          }
+          let formattedCondition = undefined
+          if (foundLastCondition) {
+            const [conditionLevel, err] = calculateConditionLevel(
+              isuCondition.i_condition
+            )
+            if (err) {
+              console.error(err)
+              await db.rollback()
+              return res.status(500).send()
+            }
+            formattedCondition = {
+              jia_isu_uuid: isuCondition.i_j_isu_uuid,
+              isu_name: isuCondition.i_name,
+              timestamp: isuCondition.i_timestamp.getTime() / 1000,
+              is_sitting: !!isuCondition.i_is_sitting,
+              condition: isuCondition.i_condition,
+              condition_level: conditionLevel,
+              message: isuCondition.i_message,
+            }
+          }
+          responseList.push({
+            id: isuCondition.i_id,
+            jia_isu_uuid: isuCondition.i_j_isu_uuid,
+            name: isuCondition.i_name,
+            character: isuCondition.i_character,
+            latest_isu_condition: formattedCondition,
+          })
         }
-        formattedCondition = {
-          jia_isu_uuid: lastCondition.jia_isu_uuid,
-          isu_name: isu.name,
-          timestamp: lastCondition.timestamp.getTime() / 1000,
-          is_sitting: !!lastCondition.is_sitting,
-          condition: lastCondition.condition,
-          condition_level: conditionLevel,
-          message: lastCondition.message,
-        }
       }
-      responseList.push({
-        id: isu.id,
-        jia_isu_uuid: isu.jia_isu_uuid,
-        name: isu.name,
-        character: isu.character,
-        latest_isu_condition: formattedCondition,
-      })
-    }
+    )
+
+    await Promise.all(isuConditionsPromise)
+
+    //responseListをid　Descにする
+    responseList.sort((a, b) => {
+      return a.id < b.id ? 1 : -1
+    })
 
     await db.commit()
 
