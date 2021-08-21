@@ -11,6 +11,8 @@ import morgan from "morgan"
 import multer, { MulterError } from "multer"
 import mysql, { RowDataPacket } from "mysql2/promise"
 import qs from "qs"
+import fs from "fs"
+
 interface Config extends RowDataPacket {
   name: string
   url: string
@@ -23,7 +25,7 @@ interface IsuResponse {
   character: string
 }
 
-interface Isu extends IsuResponse, RowDataPacket {
+export interface Isu extends IsuResponse, RowDataPacket {
   image: Buffer
   jia_user_id: string
   created_at: Date
@@ -135,7 +137,7 @@ const dbinfo: mysql.PoolOptions = {
   timezone: "+09:00",
 }
 const pool = mysql.createPool(dbinfo)
-const upload = multer()
+const upload = multer({ storage: multer.memoryStorage() })
 
 const app = express()
 
@@ -451,11 +453,13 @@ app.post(
           ? req.file.buffer
           : await readFile(defaultIconFilePath)
 
+        fs.writeFileSync(`../public/icons/${jiaIsuUUID}`, image)
+
         await db.beginTransaction()
 
         try {
           await db.query(
-            "INSERT INTO `isu` (`jia_isu_uuid`, `name`, `image`, `jia_user_id`) VALUES (?, ?, ?, ?)",
+            "INSERT INTO `isu` (`jia_isu_uuid`, `name`, `jia_user_id`) VALUES (?, ?, ?)",
             [jiaIsuUUID, isuName, image, jiaUserId]
           )
         } catch (err) {
@@ -589,14 +593,13 @@ app.get(
       }
 
       const jiaIsuUUID = req.params.jia_isu_uuid
-      const [[row]] = await db.query<(RowDataPacket & { image: Buffer })[]>(
-        "SELECT `image` FROM `isu` WHERE `jia_user_id` = ? AND `jia_isu_uuid` = ? LIMIT 1",
-        [jiaUserId, jiaIsuUUID]
-      )
-      if (!row) {
+      const iconPath = `../public/icons/${jiaIsuUUID}`
+      if (fs.existsSync(iconPath)) {
+        const icon = fs.readFileSync(iconPath)
+        return res.status(200).send(icon)
+      } else {
         return res.status(404).type("text").send("not found: isu")
       }
-      return res.status(200).send(row.image)
     } catch (err) {
       console.error(`db error: ${err}`)
       return res.status(500).send()
