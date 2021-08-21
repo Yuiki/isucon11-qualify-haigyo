@@ -1129,11 +1129,12 @@ app.post(
     res
   ) => {
     // TODO: 一定割合リクエストを落としてしのぐようにしたが、本来は全量さばけるようにすべき
-    // const dropProbability = 0.9
-    // if (Math.random() <= dropProbability) {
-    //   console.warn("drop post isu condition request")
-    //   return res.status(202).send()
-    // }
+    // sudame: もともと0.9だったがクエリの発行数を3割削減したので3割削減する
+    const dropProbability = 0.3
+    if (Math.random() <= dropProbability) {
+      console.warn("drop post isu condition request")
+      return res.status(202).send()
+    }
 
     const db = await pool.getConnection()
     try {
@@ -1155,21 +1156,31 @@ app.post(
         return res.status(404).type("text").send("not found: isu")
       }
 
+      // コンディションが正しいことを別ループで回してチェック
       for (const cond of request) {
-        const timestamp = new Date(cond.timestamp * 1000)
-
         if (!isValidConditionFormat(cond.condition)) {
           await db.rollback()
           return res.status(400).type("text").send("bad request body")
         }
-
-        await db.query(
-          "INSERT INTO `isu_condition`" +
-            "	(`jia_isu_uuid`, `timestamp`, `is_sitting`, `condition`, `message`)" +
-            "	VALUES (?, ?, ?, ?, ?)",
-          [jiaIsuUUID, timestamp, cond.is_sitting, cond.condition, cond.message]
-        )
       }
+
+      // 複数INSERT
+      // see: https://stackoverflow.com/a/14259347
+      const queryArgs = request.map((cond) => {
+        const timestamp = new Date(cond.timestamp * 1000)
+        return [
+          jiaIsuUUID,
+          timestamp,
+          cond.is_sitting,
+          cond.condition,
+          cond.message,
+        ]
+      })
+      const query =
+        "INSERT INTO `isu_condition`" +
+        "	(`jia_isu_uuid`, `timestamp`, `is_sitting`, `condition`, `message`)" +
+        "	VALUES ?"
+      await db.query(query, [queryArgs])
 
       await db.commit()
 
