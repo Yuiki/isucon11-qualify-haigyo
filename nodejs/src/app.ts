@@ -356,6 +356,7 @@ app.get("/api/isu", async (req, res) => {
 
     await db.beginTransaction();
 
+    //TODO: N+1
     const [isuList] = await db.query<Isu[]>(
       "SELECT * FROM `isu` WHERE `jia_user_id` = ? ORDER BY `id` DESC",
       [jiaUserId]
@@ -1025,6 +1026,7 @@ app.get("/api/trend", async (req, res) => {
 
     const trendResponse: TrendResponse[] = [];
 
+    //TODO: N+1
     for (const character of characterList) {
       const [isuList] = await db.query<Isu[]>(
         "SELECT * FROM `isu` WHERE `character` = ?",
