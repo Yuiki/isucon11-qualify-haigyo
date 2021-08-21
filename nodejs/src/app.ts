@@ -124,6 +124,8 @@ if (!("POST_ISUCONDITION_TARGET_BASE_URL" in process.env)) {
 }
 const postIsuConditionTargetBaseURL =
   process.env["POST_ISUCONDITION_TARGET_BASE_URL"]
+
+// TODO: connectionLimitを上げられそう
 const dbinfo: mysql.PoolOptions = {
   host: process.env["MYSQL_HOST"] ?? "127.0.0.1",
   port: parseInt(process.env["MYSQL_PORT"] ?? "3306", 10),
@@ -139,6 +141,7 @@ const upload = multer()
 const app = express()
 
 app.use(morgan("combined"))
+// TODO: Expressがアセット管理しているの最悪
 app.use("/assets", express.static(frontendContentsPath + "/assets"))
 app.use(express.json())
 app.use(
@@ -149,6 +152,8 @@ app.use(
   })
 )
 app.set("cert", readFileSync(jiaJWTSigningKeyPath))
+
+// TODO: trueにしたい
 app.set("etag", false)
 
 class ErrorWithStatus extends Error {
