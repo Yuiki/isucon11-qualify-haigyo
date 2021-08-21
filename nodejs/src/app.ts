@@ -153,7 +153,6 @@ app.use(
 )
 app.set("cert", readFileSync(jiaJWTSigningKeyPath))
 
-// TODO: trueにしたい
 app.set("etag", false)
 
 class ErrorWithStatus extends Error {
@@ -1038,45 +1037,49 @@ app.get("/api/trend", async (req, res) => {
 
     const trendResponse: TrendResponse[] = []
 
-    //TODO: N+1
     for (const character of characterList) {
-      const [isuList] = await db.query<Isu[]>(
-        "SELECT * FROM `isu` WHERE `character` = ?",
+      const [isuLastConditions] = (await db.query(
+        "SELECT i.id AS i_id, i_c.timestamp AS i_timestamp, i_c.condition AS i_condition FROM`isu_condition` i_c JOIN `isu` i ON i_c.jia_isu_uuid = i.jia_isu_uuid" +
+          " WHERE i.character = ? ORDER BY timestamp DESC",
         [character.character]
-      )
+      )) as mysql.RowDataPacket[]
 
       const characterInfoIsuConditions = []
       const characterWarningIsuConditions = []
       const characterCriticalIsuConditions = []
-      for (const isu of isuList) {
-        const [conditions] = await db.query<IsuCondition[]>(
-          "SELECT * FROM `isu_condition` WHERE `jia_isu_uuid` = ? ORDER BY timestamp DESC",
-          [isu.jia_isu_uuid]
-        )
 
-        if (conditions.length > 0) {
-          const isuLastCondition = conditions[0]
-          const [conditionLevel, err] = calculateConditionLevel(
-            isuLastCondition.condition
-          )
-          if (err) {
-            console.error(err)
-            return res.status(500).send()
-          }
-          const trendCondition: TrendCondition = {
-            isu_id: isu.id,
-            timestamp: isuLastCondition.timestamp.getTime() / 1000,
-          }
-          switch (conditionLevel) {
-            case "info":
-              characterInfoIsuConditions.push(trendCondition)
-              break
-            case "warning":
-              characterWarningIsuConditions.push(trendCondition)
-              break
-            case "critical":
-              characterCriticalIsuConditions.push(trendCondition)
-              break
+      if (isuLastConditions.length > 0) {
+        // IsuIdだけの配列。
+        let isuIdList: number[] = []
+
+        for (var i = 0; i < isuLastConditions.length; i++) {
+          const isuLastCondition = isuLastConditions[i]
+          const targetIsuId = isuLastCondition.i_id
+          if (isuIdList.indexOf(targetIsuId) === -1) {
+            isuIdList.push(targetIsuId)
+
+            const [conditionLevel, err] = calculateConditionLevel(
+              isuLastCondition.i_condition
+            )
+            if (err) {
+              console.error(err)
+              return res.status(500).send()
+            }
+            const trendCondition: TrendCondition = {
+              isu_id: targetIsuId,
+              timestamp: isuLastCondition.i_timestamp.getTime() / 1000,
+            }
+            switch (conditionLevel) {
+              case "info":
+                characterInfoIsuConditions.push(trendCondition)
+                break
+              case "warning":
+                characterWarningIsuConditions.push(trendCondition)
+                break
+              case "critical":
+                characterCriticalIsuConditions.push(trendCondition)
+                break
+            }
           }
         }
       }

@@ -5,7 +5,7 @@ echo '```' >> temp.md
 echo '```' >> temp.md
 echo '# pqd' >> temp.md
 echo '```' >> temp.md
-~/webapp/commands/run-pqd >> temp.md
+ssh isucondition-2.t.isucon.dev /home/isucon/webapp/commands/run-pqd >> temp.md
 echo '```' >> temp.md
 gh issue create --title `git rev-parse HEAD` -F temp.md
 rm temp.md
