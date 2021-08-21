@@ -1,0 +1,11 @@
+#!/bin/bash
+echo '# alp' >> temp.md
+echo '```' >> temp.md
+~/webapp/commands/run-alp >> temp.md
+echo '```' >> temp.md
+echo '# pqd' >> temp.md
+echo '```' >> temp.md
+~/webapp/commands/run-pqd >> temp.md
+echo '```' >> temp.md
+gh issue create --title `git rev-parse HEAD` -F temp.md
+rm temp.md
