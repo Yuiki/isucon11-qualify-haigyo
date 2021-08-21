@@ -1,0 +1,2 @@
+#!/bin/sh
+sudo pt-query-digest /var/log/mysql/mariadb-slow.log 
