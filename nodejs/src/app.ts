@@ -194,7 +194,7 @@ async function getUserIdFromSession(
 
 async function getJIAServiceUrl(db: mysql.Connection): Promise<string> {
   const [[config]] = await db.query<Config[]>(
-    "SELECT * FROM `isu_association_config` WHERE `name` = ?",
+    "SELECT * FROM `isu_association_config` WHERE `name` = ? LIMIT 1",
     ["jia_service_url"]
   )
   if (!config) {
@@ -507,7 +507,7 @@ app.post(
           [isuFromJIA.character, jiaIsuUUID]
         )
         const [[isu]] = await db.query<Isu[]>(
-          "SELECT * FROM `isu` WHERE `jia_user_id` = ? AND `jia_isu_uuid` = ?",
+          "SELECT * FROM `isu` WHERE `jia_user_id` = ? AND `jia_isu_uuid` = ? LIMIT 1",
           [jiaUserId, jiaIsuUUID]
         )
 
@@ -551,7 +551,7 @@ app.get(
 
       const jiaIsuUUID = req.params.jia_isu_uuid
       const [[isu]] = await db.query<Isu[]>(
-        "SELECT * FROM `isu` WHERE `jia_user_id` = ? AND `jia_isu_uuid` = ?",
+        "SELECT * FROM `isu` WHERE `jia_user_id` = ? AND `jia_isu_uuid` = ? LIMIT 1",
         [jiaUserId, jiaIsuUUID]
       )
       if (!isu) {
@@ -593,7 +593,7 @@ app.get(
 
       const jiaIsuUUID = req.params.jia_isu_uuid
       const [[row]] = await db.query<(RowDataPacket & { image: Buffer })[]>(
-        "SELECT `image` FROM `isu` WHERE `jia_user_id` = ? AND `jia_isu_uuid` = ?",
+        "SELECT `image` FROM `isu` WHERE `jia_user_id` = ? AND `jia_isu_uuid` = ? LIMIT 1",
         [jiaUserId, jiaIsuUUID]
       )
       if (!row) {
@@ -908,7 +908,7 @@ app.get(
       }
 
       const [[row]] = await db.query<(RowDataPacket & { name: string })[]>(
-        "SELECT name FROM `isu` WHERE `jia_isu_uuid` = ? AND `jia_user_id` = ?",
+        "SELECT name FROM `isu` WHERE `jia_isu_uuid` = ? AND `jia_user_id` = ? LIMIT 1",
         [jiaIsuUUID, jiaUserId]
       )
       if (!row) {
