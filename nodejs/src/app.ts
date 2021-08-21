@@ -255,10 +255,10 @@ app.post(
       db.release()
     }
 
-    const [characters] = (await db.query(
-      "SELECT `character` FROM `isu` GROUP BY `character`"
-    )) as mysql.RowDataPacket[]
-    charactersOnMemory = characters as string[]
+    const [characterList] = await db.query<
+      (RowDataPacket & { character: string })[]
+    >("SELECT `character` FROM `isu` GROUP BY `character`")
+    charactersOnMemory = characterList.map((character) => character.character)
 
     const initializeResponse: InitializeResponse = { language: "nodejs" }
     return res.status(200).json(initializeResponse)
