@@ -362,7 +362,7 @@ app.get("/api/isu", async (req, res) => {
     const [isuConditions] = (await db.query(
       "SELECT i.name AS i_name, i.id AS i_id, i.jia_isu_uuid AS i_j_isu_uuid, i.character AS i_character, i_c.timestamp AS i_timestamp, i_c.condition AS i_condition, i_c.is_sitting AS i_is_sitting, i_c.message AS i_message" +
         " FROM `isu_condition` i_c JOIN `isu` i ON i_c.jia_isu_uuid = i.jia_isu_uuid" +
-        " WHERE i.jia_user_id = ? ORDER BY timestamp DESC",
+        " WHERE i.jia_user_id = ? ORDER BY i_c.timestamp DESC, i.id DESC",
       [jiaUserId]
     )) as mysql.RowDataPacket[]
 
@@ -413,11 +413,6 @@ app.get("/api/isu", async (req, res) => {
     )
 
     await Promise.all(isuConditionsPromise)
-
-    //responseListをid　Descにする
-    responseList.sort((a, b) => {
-      return a.id < b.id ? 1 : -1
-    })
 
     await db.commit()
 
