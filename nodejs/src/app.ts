@@ -1155,21 +1155,31 @@ app.post(
         return res.status(404).type("text").send("not found: isu")
       }
 
+      // コンディションが正しいことを別ループで回してチェック
       for (const cond of request) {
-        const timestamp = new Date(cond.timestamp * 1000)
-
         if (!isValidConditionFormat(cond.condition)) {
           await db.rollback()
           return res.status(400).type("text").send("bad request body")
         }
-
-        await db.query(
-          "INSERT INTO `isu_condition`" +
-            "	(`jia_isu_uuid`, `timestamp`, `is_sitting`, `condition`, `message`)" +
-            "	VALUES (?, ?, ?, ?, ?)",
-          [jiaIsuUUID, timestamp, cond.is_sitting, cond.condition, cond.message]
-        )
       }
+
+      // 複数INSERT
+      // see: https://stackoverflow.com/a/14259347
+      const queryArgs = request.map((cond) => {
+        const timestamp = new Date(cond.timestamp * 1000)
+        return [
+          jiaIsuUUID,
+          timestamp,
+          cond.is_sitting,
+          cond.condition,
+          cond.message,
+        ]
+      })
+      const query =
+        "INSERT INTO `isu_condition`" +
+        "	(`jia_isu_uuid`, `timestamp`, `is_sitting`, `condition`, `message`)" +
+        "	VALUES ?"
+      await db.query(query, [queryArgs])
 
       await db.commit()
 
