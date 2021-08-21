@@ -1031,37 +1031,49 @@ app.get("/api/trend", async (req, res) => {
 
     for (const character of characterList) {
 
-      const [[isuLastCondition]] = await db.query(
+      const [isuLastConditions] = await db.query(
         "SELECT i.id AS i_id, i_c.timestamp AS i_timestamp, i_c.condition AS i_condition FROM`isu_condition` i_c JOIN `isu` i ON i_c.jia_isu_uuid = i.jia_isu_uuid" +
-        " WHERE i.character = ? ORDER BY i_c.timestamp DESC LIMIT 1", [character.character]
-      ) as mysql.RowDataPacket[][]
+        " WHERE i.character = ? ORDER BY timestamp DESC", [character.character]
+      ) as mysql.RowDataPacket[]
 
       const characterInfoIsuConditions = []
       const characterWarningIsuConditions = []
       const characterCriticalIsuConditions = []
 
-      if (isuLastCondition.length > 0) {
-        const [conditionLevel, err] = calculateConditionLevel(
-          isuLastCondition.i_condition
-        )
-        if (err) {
-          console.error(err)
-          return res.status(500).send()
-        }
-        const trendCondition: TrendCondition = {
-          isu_id: isuLastCondition.i_id,
-          timestamp: isuLastCondition.i_timestamp.getTime() / 1000,
-        }
-        switch (conditionLevel) {
-          case "info":
-            characterInfoIsuConditions.push(trendCondition)
-            break
-          case "warning":
-            characterWarningIsuConditions.push(trendCondition)
-            break
-          case "critical":
-            characterCriticalIsuConditions.push(trendCondition)
-            break
+
+      if (isuLastConditions.length > 0) {
+        // IsuIdだけの配列。
+        let isuIdList:number[] = []
+
+        for (var i = 0; i < isuLastConditions.length; i++) {
+          const isuLastCondition = isuLastConditions[i]
+          const targetIsuId = isuLastCondition.i_id
+          if (isuIdList.indexOf(targetIsuId) === -1) {
+            isuIdList.push(targetIsuId)
+
+            const [conditionLevel, err] = calculateConditionLevel(
+              isuLastCondition.i_condition
+            )
+            if (err) {
+              console.error(err)
+              return res.status(500).send()
+            }
+            const trendCondition: TrendCondition = {
+              isu_id: targetIsuId,
+              timestamp: isuLastCondition.i_timestamp.getTime() / 1000,
+            }
+            switch (conditionLevel) {
+              case "info":
+                characterInfoIsuConditions.push(trendCondition)
+                break
+              case "warning":
+                characterWarningIsuConditions.push(trendCondition)
+                break
+              case "critical":
+                characterCriticalIsuConditions.push(trendCondition)
+                break
+            }
+          }
         }
       }
 
