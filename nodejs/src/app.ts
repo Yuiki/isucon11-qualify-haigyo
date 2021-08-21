@@ -581,7 +581,13 @@ app.get(
       const iconPath = `../public/icons/${jiaIsuUUID}`
       if (fs.existsSync(iconPath)) {
         const icon = fs.readFileSync(iconPath)
-        return res.status(200).send(icon)
+
+        return res
+          .set({
+            "Cache-control": `public, max-age=3600`,
+          })
+          .status(200)
+          .send(icon)
       } else {
         return res.status(404).type("text").send("not found: isu")
       }
