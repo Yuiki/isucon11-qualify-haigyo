@@ -185,7 +185,7 @@ async function getUserIdFromSession(
   } catch (err) {
     throw new ErrorWithStatus(500, `db error: ${err}`)
   }
-  if (cnt === 0) {
+  if (!cnt) {
     throw new ErrorWithStatus(401, "not found: user")
   }
   return jiaUserId
@@ -648,7 +648,7 @@ app.get(
         "SELECT 1 AS `cnt` FROM `isu` WHERE `jia_user_id` = ? AND `jia_isu_uuid` = ? LIMIT 1",
         [jiaUserId, jiaIsuUUID]
       )
-      if (cnt === 0) {
+      if (!cnt) {
         await db.rollback()
         return res.status(404).type("text").send("not found: isu")
       }
@@ -1140,7 +1140,7 @@ app.post(
         "SELECT 1 AS `cnt` FROM `isu` WHERE `jia_isu_uuid` = ? LIMIT 1",
         [jiaIsuUUID]
       )
-      if (cnt === 0) {
+      if (!cnt) {
         await db.rollback()
         return res.status(404).type("text").send("not found: isu")
       }
