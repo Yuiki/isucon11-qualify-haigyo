@@ -593,6 +593,13 @@ app.get(
       }
 
       const jiaIsuUUID = req.params.jia_isu_uuid
+      const [[row]] = await db.query<(RowDataPacket & { image: Buffer })[]>(
+        "SELECT `jia_user_id` FROM `isu` WHERE `jia_user_id` = ? AND `jia_isu_uuid` = ? LIMIT 1",
+        [jiaUserId, jiaIsuUUID]
+      )
+      if (!row) {
+        return res.status(404).type("text").send("not found: isu")
+      }
       const iconPath = `../public/icons/${jiaIsuUUID}`
       if (fs.existsSync(iconPath)) {
         const icon = fs.readFileSync(iconPath)
