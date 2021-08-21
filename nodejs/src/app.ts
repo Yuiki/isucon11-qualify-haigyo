@@ -462,6 +462,7 @@ app.post(
             "INSERT INTO `isu` (`jia_isu_uuid`, `name`, `jia_user_id`) VALUES (?, ?, ?)",
             [jiaIsuUUID, isuName, jiaUserId]
           )
+          console.log("foo", "inserted", jiaIsuUUID)
         } catch (err) {
           await db.rollback()
           if (err.errno === mysqlErrNumDuplicateEntry) {
@@ -555,6 +556,7 @@ app.get(
         "SELECT * FROM `isu` WHERE `jia_user_id` = ? AND `jia_isu_uuid` = ? LIMIT 1",
         [jiaUserId, jiaIsuUUID]
       )
+      console.log("foo", "get", jiaIsuUUID, !!isu)
       if (!isu) {
         return res.status(404).type("text").send("not found: isu")
       }
@@ -1188,6 +1190,7 @@ app.post(
         ]
       })
 
+      console.log("foo", "push_condition", jiaIsuUUID)
       conditionQueue.push(...queryArgs)
       conditionQueues[nowSec] = conditionQueue
 
@@ -1254,7 +1257,7 @@ const conditionLoop = async (sec: number) => {
 
   const conditions = conditionQueues[sec]
 
-  console.log(sec, conditions)
+  console.log("foo", "condition_loop", sec, conditions)
 
   if (conditions) {
     const db = await pool.getConnection()
