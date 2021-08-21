@@ -1264,7 +1264,7 @@ const conditionLoop = async (sec: number) => {
         "INSERT INTO `isu_condition`" +
         "	(`jia_isu_uuid`, `timestamp`, `is_sitting`, `condition`, `message`)" +
         "	VALUES ?"
-      // await db.query(query, [conditions])
+      await db.query(query, [conditions])
 
       await db.commit()
     } catch (err) {
