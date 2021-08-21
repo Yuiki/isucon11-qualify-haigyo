@@ -139,6 +139,8 @@ const upload = multer()
 
 const app = express()
 
+let charactersOnMemory: string[] = []
+
 app.use(morgan("combined"))
 app.use(express.json())
 app.use(
@@ -252,6 +254,11 @@ app.post(
     } finally {
       db.release()
     }
+
+    const [characters] = (await db.query(
+      "SELECT `character` FROM `isu` GROUP BY `character`"
+    )) as mysql.RowDataPacket[]
+    charactersOnMemory = characters as string[]
 
     const initializeResponse: InitializeResponse = { language: "nodejs" }
     return res.status(200).json(initializeResponse)
@@ -1021,9 +1028,7 @@ function calculateConditionLevel(condition: string): [string, Error?] {
 app.get("/api/trend", async (req, res) => {
   const db = await pool.getConnection()
   try {
-    const [characterList] = await db.query<
-      (RowDataPacket & { character: string })[]
-    >("SELECT `character` FROM `isu` GROUP BY `character`")
+    const characterList = Array.from(charactersOnMemory)
 
     const trendResponse: TrendResponse[] = []
 
@@ -1031,7 +1036,7 @@ app.get("/api/trend", async (req, res) => {
     for (const character of characterList) {
       const [isuList] = await db.query<Isu[]>(
         "SELECT * FROM `isu` WHERE `character` = ?",
-        [character.character]
+        [character]
       )
 
       const characterInfoIsuConditions = []
@@ -1074,7 +1079,7 @@ app.get("/api/trend", async (req, res) => {
       characterWarningIsuConditions.sort((a, b) => b.timestamp - a.timestamp)
       characterCriticalIsuConditions.sort((a, b) => b.timestamp - a.timestamp)
       trendResponse.push({
-        character: character.character,
+        character: character,
         info: characterInfoIsuConditions,
         warning: characterWarningIsuConditions,
         critical: characterCriticalIsuConditions,
