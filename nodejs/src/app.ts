@@ -150,7 +150,7 @@ app.use(
 )
 app.set("cert", readFileSync(jiaJWTSigningKeyPath))
 
-app.set("etag", true)
+app.set("etag", false)
 
 class ErrorWithStatus extends Error {
   public status: number
