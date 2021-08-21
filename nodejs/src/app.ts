@@ -12,6 +12,7 @@ import multer, { MulterError } from "multer"
 import mysql, { RowDataPacket } from "mysql2/promise"
 import qs from "qs"
 import fs from "fs"
+import async from "async"
 
 interface Config extends RowDataPacket {
   name: string
@@ -1123,6 +1124,8 @@ function isValidPostIsuConditionRequest(
   )
 }
 
+const conditionQueues = {} as { [sec: number]: any[] | undefined }
+
 // POST /api/condition/:jia_isu_uuid
 // ISUからのコンディションを受け取る
 app.post(
@@ -1170,6 +1173,10 @@ app.post(
         }
       }
 
+      const now = new Date()
+      const nowSec = Math.floor(now.getTime() / 1000)
+      const conditionQueue = conditionQueues[nowSec] ?? []
+
       // 複数INSERT
       // see: https://stackoverflow.com/a/14259347
       const queryArgs = request.map((cond) => {
@@ -1182,13 +1189,9 @@ app.post(
           cond.message,
         ]
       })
-      const query =
-        "INSERT INTO `isu_condition`" +
-        "	(`jia_isu_uuid`, `timestamp`, `is_sitting`, `condition`, `message`)" +
-        "	VALUES ?"
-      await db.query(query, [queryArgs])
 
-      await db.commit()
+      conditionQueue.push(...queryArgs)
+      conditionQueues[nowSec] = conditionQueue
 
       return res.status(202).send()
     } catch (err) {
@@ -1245,5 +1248,37 @@ function isValidConditionFormat(condition: string): boolean {
     res.sendFile(path.resolve("../public", "index.html"))
   })
 })
+
+const conditionLoop = async (sec: number) => {
+  const conditions = conditionQueues[sec]
+  if (conditions) {
+    const db = await pool.getConnection()
+
+    try {
+      const query =
+        "INSERT INTO `isu_condition`" +
+        "	(`jia_isu_uuid`, `timestamp`, `is_sitting`, `condition`, `message`)" +
+        "	VALUES ?"
+      await db.query(query, [conditions])
+
+      await db.commit()
+    } catch (err) {
+      console.error(`db error: ${err}`)
+      await db.rollback()
+    } finally {
+      db.release()
+    }
+  }
+
+  conditionQueues[sec] = undefined
+
+  setTimeout(() => {
+    conditionLoop(sec + 1)
+  }, 1000)
+}
+
+const now = new Date()
+const nowSec = Math.floor(now.getTime() / 1000)
+conditionLoop(nowSec)
 
 app.listen(parseInt(process.env["SERVER_APP_PORT"] ?? "3000", 10))
