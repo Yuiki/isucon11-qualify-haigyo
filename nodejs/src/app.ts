@@ -48,6 +48,8 @@ interface IsuCondition extends RowDataPacket {
   created_at: Date
 }
 
+
+
 interface InitializeResponse {
   language: string
 }
@@ -948,18 +950,18 @@ async function getIsuConditions(
   const [conditions] =
     startTime.getTime() === 0
       ? await db.query<IsuCondition[]>(
-          "SELECT * FROM `isu_condition` WHERE `jia_isu_uuid` = ?" +
-            "	AND `timestamp` < ?" +
-            "	ORDER BY `timestamp` DESC",
-          [jiaIsuUUID, endTime]
-        )
+        "SELECT * FROM `isu_condition` WHERE `jia_isu_uuid` = ?" +
+        "	AND `timestamp` < ?" +
+        "	ORDER BY `timestamp` DESC",
+        [jiaIsuUUID, endTime]
+      )
       : await db.query<IsuCondition[]>(
-          "SELECT * FROM `isu_condition` WHERE `jia_isu_uuid` = ?" +
-            "	AND `timestamp` < ?" +
-            "	AND ? <= `timestamp`" +
-            "	ORDER BY `timestamp` DESC",
-          [jiaIsuUUID, endTime, startTime]
-        )
+        "SELECT * FROM `isu_condition` WHERE `jia_isu_uuid` = ?" +
+        "	AND `timestamp` < ?" +
+        "	AND ? <= `timestamp`" +
+        "	ORDER BY `timestamp` DESC",
+        [jiaIsuUUID, endTime, startTime]
+      )
 
   let conditionsResponse: GetIsuConditionResponse[] = []
   conditions.forEach((condition) => {
@@ -1030,46 +1032,40 @@ app.get("/api/trend", async (req, res) => {
 
     const trendResponse: TrendResponse[] = []
 
-    //TODO: N+1
     for (const character of characterList) {
-      const [isuList] = await db.query<Isu[]>(
-        "SELECT * FROM `isu` WHERE `character` = ?",
-        [character.character]
-      )
+
+      const [isuLastCondition] = await db.query(
+        "SELECT i.id AS i_id, i_c.timestamp AS i_timestamp, i_c.condition AS i_condition FROM`isu_condition` i_c JOIN `isu` i ON i_c.jia_isu_uuid = i.jia_isu_uuid" +
+        " WHERE i.character = ? ORDER BY i_c.timestamp DESC LIMIT 1", [character.character]
+      ) as mysql.RowDataPacket[]
 
       const characterInfoIsuConditions = []
       const characterWarningIsuConditions = []
       const characterCriticalIsuConditions = []
-      for (const isu of isuList) {
-        const [conditions] = await db.query<IsuCondition[]>(
-          "SELECT * FROM `isu_condition` WHERE `jia_isu_uuid` = ? ORDER BY timestamp DESC",
-          [isu.jia_isu_uuid]
-        )
 
-        if (conditions.length > 0) {
-          const isuLastCondition = conditions[0]
-          const [conditionLevel, err] = calculateConditionLevel(
-            isuLastCondition.condition
-          )
-          if (err) {
-            console.error(err)
-            return res.status(500).send()
-          }
-          const trendCondition: TrendCondition = {
-            isu_id: isu.id,
-            timestamp: isuLastCondition.timestamp.getTime() / 1000,
-          }
-          switch (conditionLevel) {
-            case "info":
-              characterInfoIsuConditions.push(trendCondition)
-              break
-            case "warning":
-              characterWarningIsuConditions.push(trendCondition)
-              break
-            case "critical":
-              characterCriticalIsuConditions.push(trendCondition)
-              break
-          }
+      if (isuLastCondition.length > 0) {
+        // const isuLastCondition = conditions[0]
+        const [conditionLevel, err] = calculateConditionLevel(
+          isuLastCondition.i_condition
+        )
+        if (err) {
+          console.error(err)
+          return res.status(500).send()
+        }
+        const trendCondition: TrendCondition = {
+          isu_id: isuLastCondition.i_id,
+          timestamp: isuLastCondition.i_timestamp.getTime() / 1000,
+        }
+        switch (conditionLevel) {
+          case "info":
+            characterInfoIsuConditions.push(trendCondition)
+            break
+          case "warning":
+            characterWarningIsuConditions.push(trendCondition)
+            break
+          case "critical":
+            characterCriticalIsuConditions.push(trendCondition)
+            break
         }
       }
 
