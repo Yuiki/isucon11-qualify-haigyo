@@ -176,9 +176,9 @@ async function getUserIdFromSession(
     throw new ErrorWithStatus(401, "no session")
   }
 
-  let cnt: number
+  let cnt: any
   try {
-    ;[[{ cnt }]] = await db.query<(RowDataPacket & { cnt: number })[]>(
+    ;[[cnt]] = await db.query<(RowDataPacket & { cnt: number })[]>(
       "SELECT 1 AS `cnt` FROM `user` WHERE `jia_user_id` = ? LIMIT 1",
       [jiaUserId]
     )
@@ -644,7 +644,7 @@ app.get(
 
       await db.beginTransaction()
 
-      const [[{ cnt }]] = await db.query<(RowDataPacket & { cnt: number })[]>(
+      const [[cnt]] = await db.query<(RowDataPacket & { cnt: number })[]>(
         "SELECT 1 AS `cnt` FROM `isu` WHERE `jia_user_id` = ? AND `jia_isu_uuid` = ? LIMIT 1",
         [jiaUserId, jiaIsuUUID]
       )
@@ -1136,7 +1136,7 @@ app.post(
 
       await db.beginTransaction()
 
-      const [[{ cnt }]] = await db.query<(RowDataPacket & { cnt: number })[]>(
+      const [[cnt]] = await db.query<(RowDataPacket & { cnt: number })[]>(
         "SELECT 1 AS `cnt` FROM `isu` WHERE `jia_isu_uuid` = ? LIMIT 1",
         [jiaIsuUUID]
       )
