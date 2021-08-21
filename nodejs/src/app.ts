@@ -1125,6 +1125,8 @@ function isValidPostIsuConditionRequest(
   )
 }
 
+let storedConditions = [] as any[][]
+
 // POST /api/condition/:jia_isu_uuid
 // ISUからのコンディションを受け取る
 app.post(
@@ -1179,13 +1181,19 @@ app.post(
           cond.message,
         ]
       })
-      const query =
-        "INSERT INTO `isu_condition`" +
-        "	(`jia_isu_uuid`, `timestamp`, `is_sitting`, `condition`, `message`)" +
-        "	VALUES ?"
-      await db.query(query, [queryArgs])
 
-      await db.commit()
+      storedConditions.push(...queryArgs)
+      if (storedConditions.length >= 100) {
+        const tmp = storedConditions
+        storedConditions = []
+        const query =
+          "INSERT INTO `isu_condition`" +
+          "	(`jia_isu_uuid`, `timestamp`, `is_sitting`, `condition`, `message`)" +
+          "	VALUES ?"
+        await db.query(query, [tmp])
+
+        await db.commit()
+      }
 
       return res.status(202).send()
     } catch (err) {
