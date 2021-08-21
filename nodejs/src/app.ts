@@ -1170,7 +1170,7 @@ app.post(
       }
 
       const now = new Date()
-      const nowSec = Math.floor(now.getTime() / 1000)
+      const nowSec = Math.ceil(now.getTime() / 1000)
       const conditionQueue = conditionQueues[nowSec] ?? []
 
       // 複数INSERT
