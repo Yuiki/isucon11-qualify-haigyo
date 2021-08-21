@@ -1127,7 +1127,9 @@ function isValidPostIsuConditionRequest(
   )
 }
 
-const conditionQueues = {} as { [sec: number]: any[] | undefined }
+type Condition = any[]
+
+const conditionQueues = {} as { [sec: number]: Condition[] | undefined }
 
 // POST /api/condition/:jia_isu_uuid
 // ISUからのコンディションを受け取る
@@ -1246,7 +1248,14 @@ function isValidConditionFormat(condition: string): boolean {
 })
 
 const conditionLoop = async (sec: number) => {
+  setTimeout(() => {
+    conditionLoop(sec + 1)
+  }, 1000)
+
   const conditions = conditionQueues[sec]
+
+  console.log(sec, conditions)
+
   if (conditions) {
     const db = await pool.getConnection()
 
@@ -1255,7 +1264,7 @@ const conditionLoop = async (sec: number) => {
         "INSERT INTO `isu_condition`" +
         "	(`jia_isu_uuid`, `timestamp`, `is_sitting`, `condition`, `message`)" +
         "	VALUES ?"
-      await db.query(query, [conditions])
+      // await db.query(query, [conditions])
 
       await db.commit()
     } catch (err) {
@@ -1267,10 +1276,6 @@ const conditionLoop = async (sec: number) => {
   }
 
   conditionQueues[sec] = undefined
-
-  setTimeout(() => {
-    conditionLoop(sec + 1)
-  }, 1000)
 }
 
 const now = new Date()
