@@ -179,7 +179,7 @@ async function getUserIdFromSession(
   let cnt: number
   try {
     ;[[{ cnt }]] = await db.query<(RowDataPacket & { cnt: number })[]>(
-      "SELECT COUNT(*) AS `cnt` FROM `user` WHERE `jia_user_id` = ?",
+      "SELECT 1 AS `cnt` FROM `user` WHERE `jia_user_id` = ? LIMIT 1",
       [jiaUserId]
     )
   } catch (err) {
@@ -639,7 +639,7 @@ app.get(
       await db.beginTransaction()
 
       const [[{ cnt }]] = await db.query<(RowDataPacket & { cnt: number })[]>(
-        "SELECT COUNT(*) AS `cnt` FROM `isu` WHERE `jia_user_id` = ? AND `jia_isu_uuid` = ?",
+        "SELECT 1 AS `cnt` FROM `isu` WHERE `jia_user_id` = ? AND `jia_isu_uuid` = ? LIMIT 1",
         [jiaUserId, jiaIsuUUID]
       )
       if (cnt === 0) {
@@ -1131,7 +1131,7 @@ app.post(
       await db.beginTransaction()
 
       const [[{ cnt }]] = await db.query<(RowDataPacket & { cnt: number })[]>(
-        "SELECT COUNT(*) AS `cnt` FROM `isu` WHERE `jia_isu_uuid` = ?",
+        "SELECT 1 AS `cnt` FROM `isu` WHERE `jia_isu_uuid` = ? LIMIT 1",
         [jiaIsuUUID]
       )
       if (cnt === 0) {
