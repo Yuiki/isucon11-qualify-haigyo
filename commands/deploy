@@ -1,0 +1,3 @@
+ssh isucon@35.76.159.195 "export PATH=/home/isucon/local/node/bin:\$PATH && cd ~/webapp && ./commands/pre-bench1"
+ssh isucon@18.176.184.59 "export PATH=/home/isucon/local/node/bin:\$PATH && cd ~/webapp && ./commands/pre-bench2"
+ssh isucon@54.150.166.63 "export PATH=/home/isucon/local/node/bin:\$PATH && cd ~/webapp && ./commands/pre-bench3"
