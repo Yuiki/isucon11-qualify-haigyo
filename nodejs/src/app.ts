@@ -119,7 +119,7 @@ const scoreConditionLevelInfo = 3
 const scoreConditionLevelWarning = 2
 const scoreConditionLevelCritical = 1
 
-let JIA_SERVICE_URL: string = ""
+let JIA_SERVICE_URL: string | undefined
 
 if (!("POST_ISUCONDITION_TARGET_BASE_URL" in process.env)) {
   console.error("missing: POST_ISUCONDITION_TARGET_BASE_URL")
@@ -199,6 +199,20 @@ function isValidPostInitializeRequest(
   body: PostInitializeRequest
 ): body is PostInitializeRequest {
   return typeof body === "object" && typeof body.jia_service_url === "string"
+}
+
+async function getJIAServiceUrl(db: mysql.Connection): Promise<string> {
+  if (!JIA_SERVICE_URL) {
+    const [[config]] = await db.query<Config[]>(
+      "SELECT * FROM `isu_association_config` WHERE `name` = ? LIMIT 1",
+      ["jia_service_url"]
+    )
+    if (!config) {
+      return defaultJIAServiceUrl
+    }
+    JIA_SERVICE_URL = config.url
+  }
+  return JIA_SERVICE_URL
 }
 
 // POST /initialize
@@ -450,7 +464,7 @@ app.post(
           }
         }
 
-        const targetUrl = JIA_SERVICE_URL + "/api/activate"
+        const targetUrl = (await getJIAServiceUrl(db)) + "/api/activate"
 
         let isuFromJIA: { character: string }
         try {
