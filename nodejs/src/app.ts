@@ -48,8 +48,6 @@ interface IsuCondition extends RowDataPacket {
   created_at: Date
 }
 
-
-
 interface InitializeResponse {
   language: string
 }
@@ -152,8 +150,7 @@ app.use(
 )
 app.set("cert", readFileSync(jiaJWTSigningKeyPath))
 
-// TODO: trueにしたい
-app.set("etag", false)
+app.set("etag", true)
 
 class ErrorWithStatus extends Error {
   public status: number
@@ -947,18 +944,18 @@ async function getIsuConditions(
   const [conditions] =
     startTime.getTime() === 0
       ? await db.query<IsuCondition[]>(
-        "SELECT * FROM `isu_condition` WHERE `jia_isu_uuid` = ?" +
-        "	AND `timestamp` < ?" +
-        "	ORDER BY `timestamp` DESC",
-        [jiaIsuUUID, endTime]
-      )
+          "SELECT * FROM `isu_condition` WHERE `jia_isu_uuid` = ?" +
+            "	AND `timestamp` < ?" +
+            "	ORDER BY `timestamp` DESC",
+          [jiaIsuUUID, endTime]
+        )
       : await db.query<IsuCondition[]>(
-        "SELECT * FROM `isu_condition` WHERE `jia_isu_uuid` = ?" +
-        "	AND `timestamp` < ?" +
-        "	AND ? <= `timestamp`" +
-        "	ORDER BY `timestamp` DESC",
-        [jiaIsuUUID, endTime, startTime]
-      )
+          "SELECT * FROM `isu_condition` WHERE `jia_isu_uuid` = ?" +
+            "	AND `timestamp` < ?" +
+            "	AND ? <= `timestamp`" +
+            "	ORDER BY `timestamp` DESC",
+          [jiaIsuUUID, endTime, startTime]
+        )
 
   let conditionsResponse: GetIsuConditionResponse[] = []
   conditions.forEach((condition) => {
@@ -1030,7 +1027,6 @@ app.get("/api/trend", async (req, res) => {
     const trendResponse: TrendResponse[] = []
 
     for (const character of characterList) {
-
       const [isuLastConditions] = await db.query(
         "SELECT i.id AS i_id, i_c.timestamp AS i_timestamp, i_c.condition AS i_condition FROM`isu_condition` i_c JOIN `isu` i ON i_c.jia_isu_uuid = i.jia_isu_uuid" +
         " WHERE i.character = ? ORDER BY timestamp DESC", [character.character]
@@ -1039,7 +1035,6 @@ app.get("/api/trend", async (req, res) => {
       const characterInfoIsuConditions = []
       const characterWarningIsuConditions = []
       const characterCriticalIsuConditions = []
-
 
       if (isuLastConditions.length > 0) {
         // IsuIdだけの配列。
