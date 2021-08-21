@@ -1,3 +1,3 @@
 #!/bin/sh
 
-sudo alp ltsv --file=/var/log/nginx/access.log -r -m "/api/isu/.+?/icon,/api/isu/.+/graph,/api/isu/.+,/api/condition/.+,/isu/.+?/condition,/isu/.+?/graph,/isu/.+" --sort=sum
+sudo alp ltsv --file=/var/log/nginx/access.log -r -m "^/api/isu/.+/icon,^/api/isu/.+/graph,/api/condition/.+,^/isu/.+/condition,^/isu/.+/graph,^/api/isu/.+,^/isu/.+" --sort=sum
