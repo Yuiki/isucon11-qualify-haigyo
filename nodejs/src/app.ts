@@ -119,6 +119,8 @@ const scoreConditionLevelInfo = 3
 const scoreConditionLevelWarning = 2
 const scoreConditionLevelCritical = 1
 
+let JIA_SERVICE_URL: string = ""
+
 if (!("POST_ISUCONDITION_TARGET_BASE_URL" in process.env)) {
   console.error("missing: POST_ISUCONDITION_TARGET_BASE_URL")
   process.exit(1)
@@ -189,17 +191,6 @@ async function getUserIdFromSession(
   return jiaUserId
 }
 
-async function getJIAServiceUrl(db: mysql.Connection): Promise<string> {
-  const [[config]] = await db.query<Config[]>(
-    "SELECT * FROM `isu_association_config` WHERE `name` = ? LIMIT 1",
-    ["jia_service_url"]
-  )
-  if (!config) {
-    return defaultJIAServiceUrl
-  }
-  return config.url
-}
-
 interface PostInitializeRequest {
   jia_service_url: string
 }
@@ -240,18 +231,7 @@ app.post(
       return res.status(500).send()
     }
 
-    const db = await pool.getConnection()
-    try {
-      await db.query(
-        "INSERT INTO `isu_association_config` (`name`, `url`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `url` = VALUES(`url`)",
-        ["jia_service_url", request.jia_service_url]
-      )
-    } catch (err) {
-      console.error(`db error: ${err}`)
-      return res.status(500).send()
-    } finally {
-      db.release()
-    }
+    JIA_SERVICE_URL = request.jia_service_url
 
     const initializeResponse: InitializeResponse = { language: "nodejs" }
     return res.status(200).json(initializeResponse)
@@ -470,7 +450,7 @@ app.post(
           }
         }
 
-        const targetUrl = (await getJIAServiceUrl(db)) + "/api/activate"
+        const targetUrl = JIA_SERVICE_URL + "/api/activate"
 
         let isuFromJIA: { character: string }
         try {
