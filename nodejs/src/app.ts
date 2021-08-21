@@ -460,7 +460,7 @@ app.post(
         try {
           await db.query(
             "INSERT INTO `isu` (`jia_isu_uuid`, `name`, `jia_user_id`) VALUES (?, ?, ?)",
-            [jiaIsuUUID, isuName, image, jiaUserId]
+            [jiaIsuUUID, isuName, jiaUserId]
           )
         } catch (err) {
           await db.rollback()
