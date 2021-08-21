@@ -108,7 +108,6 @@ interface TrendCondition {
 
 const sessionName = "isucondition_nodejs"
 const conditionLimit = 20
-const frontendContentsPath = "../public"
 const jiaJWTSigningKeyPath = "../ec256-public.pem"
 const defaultIconFilePath = "../NoImage.jpg"
 const defaultJIAServiceUrl = "http://localhost:5000"
@@ -143,8 +142,6 @@ const upload = multer()
 const app = express()
 
 app.use(morgan("combined"))
-// TODO: Expressがアセット管理しているの最悪
-app.use("/assets", express.static(frontendContentsPath + "/assets"))
 app.use(express.json())
 app.use(
   session({

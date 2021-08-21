@@ -1,0 +1,9 @@
+#!/bin/sh
+
+sudo truncate -s 0 -c /var/log/nginx/access.log
+
+git pull
+
+sudo systemctl restart nginx
+
+sudo systemctl restart isucondition.nodejs.service

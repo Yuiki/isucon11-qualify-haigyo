@@ -1,0 +1,5 @@
+#!/bin/sh
+
+git pull
+
+sudo systemctl restart isucondition.nodejs.service
