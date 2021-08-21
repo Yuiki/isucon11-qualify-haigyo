@@ -1037,10 +1037,11 @@ app.get("/api/trend", async (req, res) => {
     const trendResponse: TrendResponse[] = []
 
     for (const character of characterList) {
-      const [isuLastConditions] = await db.query(
+      const [isuLastConditions] = (await db.query(
         "SELECT i.id AS i_id, i_c.timestamp AS i_timestamp, i_c.condition AS i_condition FROM`isu_condition` i_c JOIN `isu` i ON i_c.jia_isu_uuid = i.jia_isu_uuid" +
-        " WHERE i.character = ? ORDER BY timestamp DESC", [character.character]
-      ) as mysql.RowDataPacket[]
+          " WHERE i.character = ? ORDER BY timestamp DESC",
+        [character.character]
+      )) as mysql.RowDataPacket[]
 
       const characterInfoIsuConditions = []
       const characterWarningIsuConditions = []
@@ -1048,7 +1049,7 @@ app.get("/api/trend", async (req, res) => {
 
       if (isuLastConditions.length > 0) {
         // IsuIdだけの配列。
-        let isuIdList:number[] = []
+        let isuIdList: number[] = []
 
         for (var i = 0; i < isuLastConditions.length; i++) {
           const isuLastCondition = isuLastConditions[i]
@@ -1138,7 +1139,7 @@ app.post(
     res
   ) => {
     // TODO: 一定割合リクエストを落としてしのぐようにしたが、本来は全量さばけるようにすべき
-    const dropProbability = 0.9
+    const dropProbability = 0.7
     if (Math.random() <= dropProbability) {
       console.warn("drop post isu condition request")
       return res.status(202).send()
