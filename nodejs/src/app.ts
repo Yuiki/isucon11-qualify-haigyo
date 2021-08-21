@@ -364,7 +364,7 @@ app.get("/api/isu", async (req, res) => {
       [jiaUserId]
     )
     const responseList: Array<GetIsuListResponse> = []
-    for (const isu of isuList) {
+    const promises = isuList.map(async (isu) => {
       let foundLastCondition = true
       const [[lastCondition]] = await db.query<IsuCondition[]>(
         "SELECT * FROM `isu_condition` WHERE `jia_isu_uuid` = ? ORDER BY `timestamp` DESC LIMIT 1",
@@ -400,7 +400,9 @@ app.get("/api/isu", async (req, res) => {
         character: isu.character,
         latest_isu_condition: formattedCondition,
       })
-    }
+    })
+
+    await Promise.all(promises)
 
     await db.commit()
 
